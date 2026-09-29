@@ -129,10 +129,40 @@ These two experiments intentionally live in one repository so one commit can exe
 
 ## Deploy
 
+Terraform cannot use an S3 backend until its bucket exists, so create the backend first from the separate bootstrap root. It uses the requested module pinned to commit `59f17d5e6480e1347e5dd6ea83f200036e4242d8`.
+
+### 1. Bootstrap the backend
+
+The bootstrap starts with local state because the remote backend does not exist yet:
+
 ```shell
-terraform init
-terraform plan -out=async-worker.tfplan
-terraform apply async-worker.tfplan
+tf -chdir=backend-bootstrap init -reconfigure
+tf -chdir=backend-bootstrap plan -out=backend.tfplan
+tf -chdir=backend-bootstrap apply backend.tfplan
+```
+
+This creates:
+
+```text
+S3 bucket:      terraform-state-async-worker-lab-489947827123
+DynamoDB table: terraform-state-lock-async-worker-lab-489947827123
+```
+
+Now enable the bootstrap's remote backend and migrate its local state under a separate key:
+
+```shell
+cp backend-bootstrap/remote-backend.tf.example backend-bootstrap/remote-backend.tf
+tf -chdir=backend-bootstrap init -migrate-state
+```
+
+### 2. Deploy the application
+
+The root [`backend.tf`](backend.tf) contains the complete S3 backend configuration:
+
+```shell
+tf init -reconfigure
+tf plan -out=async-worker.tfplan
+tf apply async-worker.tfplan
 ```
 
 The configured GitHub connection must already be in `AVAILABLE` state. Pipeline source files must also be committed to the configured branch before expecting the first pipeline execution to pass.
@@ -142,5 +172,7 @@ The configured GitHub connection must already be in `AVAILABLE` state. Pipeline 
 This lab creates billable Fargate tasks, an Application Load Balancer, CodeBuild jobs, CloudWatch Logs, and S3/ECR storage. Remove it when finished:
 
 ```shell
-terraform destroy
+tf destroy
 ```
+
+Destroy the application stack before destroying `backend-bootstrap`; otherwise its remote state would become inaccessible.

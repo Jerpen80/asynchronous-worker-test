@@ -1,0 +1,12 @@
+# Rename this file to remote-backend.tf only after the bootstrap apply has
+# created the S3 bucket and DynamoDB table, then run terraform init -migrate-state.
+terraform {
+  backend "s3" {
+    bucket         = "terraform-state-async-worker-lab-489947827123"
+    key            = "asynchronous-worker/backend-bootstrap.tfstate"
+    region         = "eu-central-1"
+    dynamodb_table = "terraform-state-lock-async-worker-lab-489947827123"
+    encrypt        = true
+    profile        = "tn-playground"
+  }
+}
