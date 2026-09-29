@@ -4,6 +4,7 @@ resource "aws_appautoscaling_target" "consumer" {
   resource_id        = local.service_resource_id
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
+  tags               = local.tags
 }
 
 resource "aws_appautoscaling_policy" "scale_out" {

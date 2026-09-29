@@ -111,6 +111,8 @@ producer_burst_interval_seconds = 120
 
 The values intended for experimentation are collected in [`terraform.tfvars`](terraform.tfvars). Change the consumer timing/scaling values or producer burst pattern there, then run Terraform from the repository root.
 
+The AWS provider applies `ManagedBy`, `Project`, and the custom `tags` map as default tags to every resource type that supports AWS tags. Explicit resource tags are merged with those defaults. AWS configuration objects that do not support tagging—such as IAM inline policies, ECR lifecycle policies, SQS redrive policies, and some autoscaling policies—cannot be tagged through Terraform.
+
 ## Pipeline and lifecycle
 
 ```text
