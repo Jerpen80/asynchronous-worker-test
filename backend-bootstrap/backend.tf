@@ -4,8 +4,7 @@ terraform {
   required_providers {
     aws = {
       source = "hashicorp/aws"
-      # The pinned backend module generates a policy containing a null value
-      # that AWS provider v6 rejects. Use the provider version it was built for.
+      # Match the provider generation used by the pinned backend module.
       version = "= 4.57.0"
     }
   }
@@ -29,4 +28,5 @@ module "terraform_backend" {
   name                        = var.name
   use_fixed_name              = "true"
   add_name_prefix_to_dynamodb = true
+  kms_key_arn                 = var.kms_key_arn
 }

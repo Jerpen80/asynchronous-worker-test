@@ -2,6 +2,7 @@
 aws_profile = "your-aws-profile"
 aws_region  = "eu-central-1"
 name        = "async-worker-lab-123456789012"
+kms_key_arn = "arn:aws:kms:eu-central-1:123456789012:key/00000000-0000-0000-0000-000000000000"
 
 tags = {
   Project     = "asynchronous-worker-lab"
