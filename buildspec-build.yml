@@ -10,7 +10,8 @@ phases:
       - echo "PRE_BUILD - authenticating to ECR"
       - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - REGISTRY="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
-      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}-${CODEBUILD_BUILD_NUMBER}"
+      - SHORT_SHA=$(printf '%.8s' "$CODEBUILD_RESOLVED_SOURCE_VERSION")
+      - IMAGE_TAG="${SHORT_SHA}-${CODEBUILD_BUILD_NUMBER}"
       - aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
   build:
     commands:
