@@ -135,6 +135,15 @@ resource "aws_iam_role_policy" "codepipeline" {
       { Effect = "Allow", Action = ["s3:GetBucketVersioning", "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"], Resource = [aws_s3_bucket.pipeline.arn, "${aws_s3_bucket.pipeline.arn}/*"] },
       { Effect = "Allow", Action = ["codebuild:StartBuild", "codebuild:BatchGetBuilds"], Resource = [aws_codebuild_project.test.arn, aws_codebuild_project.build.arn, aws_codebuild_project.integration.arn] },
       { Effect = "Allow", Action = ["codedeploy:CreateDeployment", "codedeploy:GetApplication", "codedeploy:GetApplicationRevision", "codedeploy:GetDeployment", "codedeploy:GetDeploymentConfig", "codedeploy:RegisterApplicationRevision"], Resource = "*" },
+      { Effect = "Allow", Action = ["ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition"], Resource = "*" },
+      {
+        Effect   = "Allow"
+        Action   = "ecs:TagResource"
+        Resource = "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name}-consumer:*"
+        Condition = {
+          StringEquals = { "ecs:CreateAction" = "RegisterTaskDefinition" }
+        }
+      },
       { Effect = "Allow", Action = "iam:PassRole", Resource = [aws_iam_role.ecs_execution.arn, aws_iam_role.consumer.arn] }
     ]
   })
