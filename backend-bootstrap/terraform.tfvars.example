@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and replace the account-specific values.
+aws_profile = "your-aws-profile"
+aws_region  = "eu-central-1"
+name        = "async-worker-lab-123456789012"
+
+tags = {
+  Project     = "asynchronous-worker-lab"
+  Environment = "learning"
+}

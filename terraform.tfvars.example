@@ -1,0 +1,41 @@
+# Copy this file to terraform.tfvars and replace the placeholders.
+
+# AWS environment and source repository
+aws_profile    = "your-aws-profile"
+aws_region     = "eu-central-1"
+connection_arn = "arn:aws:codeconnections:eu-central-1:123456789012:connection/00000000-0000-0000-0000-000000000000"
+repository_id  = "owner/repository"
+branch_name    = "main"
+
+# Stack identity and networking
+name       = "async-worker-lab"
+vpc_id     = "vpc-00000000000000000"
+subnet_ids = [
+  "subnet-00000000000000001",
+  "subnet-00000000000000002",
+]
+assign_public_ip = true
+
+# Consumer experiment
+consumer_min_capacity      = 1
+consumer_max_capacity      = 10
+processing_seconds         = 5
+failure_rate               = 0
+visibility_timeout_seconds = 30
+max_receive_count          = 3
+
+# Producer load pattern
+producer_messages_per_burst     = 100
+producer_burst_count            = 1
+producer_burst_interval_seconds = 60
+producer_batch_delay_seconds    = 0.1
+
+# CodeDeploy and logs
+deployment_config_name   = "CodeDeployDefault.ECSCanary10Percent5Minutes"
+termination_wait_minutes = 5
+log_retention_days       = 14
+
+tags = {
+  Project     = "asynchronous-worker-lab"
+  Environment = "learning"
+}

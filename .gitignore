@@ -5,3 +5,7 @@ __pycache__/
 *.tfstate.*
 *.tfplan
 crash.log
+backend-bootstrap/remote-backend.tf
+terraform.tfvars
+*.auto.tfvars
+backend-bootstrap/terraform.tfvars

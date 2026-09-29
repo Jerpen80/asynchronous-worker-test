@@ -3,8 +3,10 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = ">= 5.74.0"
+      source = "hashicorp/aws"
+      # The pinned backend module generates a policy containing a null value
+      # that AWS provider v6 rejects. Use the provider version it was built for.
+      version = "= 4.57.0"
     }
   }
 }
