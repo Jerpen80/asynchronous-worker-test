@@ -14,7 +14,7 @@ Producer ECS task -> SQS queue -> Consumer ECS service
                               queue-depth autoscaling
 ```
 
-The producer is an on-demand Fargate task. It sends a burst of 100 messages and exits. The consumer is a long-running Fargate service that receives one message at a time, simulates work, and deletes the message only after successful processing.
+The producer is an on-demand Fargate task. It sends configurable bursts of messages and exits. The consumer is a long-running Fargate service that receives one message at a time, simulates work, and deletes the message only after successful processing.
 
 This experiment shows:
 
@@ -25,6 +25,17 @@ This experiment shows:
 - how several consumer tasks process the queue concurrently and scale back in after it drains.
 
 Set `failure_rate` above zero to intentionally fail some jobs and observe retries and the DLQ. Increase `processing_seconds` to keep the queue backed up long enough to watch scaling in CloudWatch and ECS.
+
+The producer load pattern is controlled without code changes:
+
+```hcl
+producer_messages_per_burst       = 500
+producer_burst_count              = 3
+producer_burst_interval_seconds   = 120
+producer_batch_delay_seconds      = 0.1
+```
+
+That example sends 500 messages, waits two minutes, and repeats twice more. Useful patterns include one large burst to watch scale-out, several spaced bursts to watch scale-in and scale-out repeat, and short intervals that keep pressure on the queue. These values become defaults in the producer task definition and can also be overridden for an individual `aws ecs run-task` invocation.
 
 ### 2. CodePipeline with tests and CodeDeploy hooks
 

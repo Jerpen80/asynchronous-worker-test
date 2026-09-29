@@ -64,7 +64,10 @@ resource "aws_ecs_task_definition" "producer" {
     essential = true
     environment = [
       { name = "QUEUE_URL", value = aws_sqs_queue.jobs.url },
-      { name = "MESSAGE_COUNT", value = "100" }
+      { name = "MESSAGE_COUNT", value = tostring(var.producer_messages_per_burst) },
+      { name = "BURST_COUNT", value = tostring(var.producer_burst_count) },
+      { name = "BURST_INTERVAL_SECONDS", value = tostring(var.producer_burst_interval_seconds) },
+      { name = "BATCH_DELAY_SECONDS", value = tostring(var.producer_batch_delay_seconds) }
     ]
     logConfiguration = {
       logDriver = "awslogs"

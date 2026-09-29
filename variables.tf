@@ -74,6 +74,30 @@ variable "failure_rate" {
   }
 }
 
+variable "producer_messages_per_burst" {
+  description = "Number of SQS messages sent in each producer burst."
+  type        = number
+  default     = 100
+}
+
+variable "producer_burst_count" {
+  description = "Number of bursts sent by one producer task run."
+  type        = number
+  default     = 1
+}
+
+variable "producer_burst_interval_seconds" {
+  description = "Seconds the producer waits between bursts."
+  type        = number
+  default     = 60
+}
+
+variable "producer_batch_delay_seconds" {
+  description = "Delay between SQS SendMessageBatch calls within a burst."
+  type        = number
+  default     = 0.1
+}
+
 variable "visibility_timeout_seconds" {
   description = "SQS visibility timeout. Keep this longer than processing_seconds."
   type        = number
