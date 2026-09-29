@@ -1,0 +1,36 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "INSTALL - checking Docker"
+      - docker version
+  pre_build:
+    commands:
+      - echo "PRE_BUILD - authenticating to ECR"
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGISTRY="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}-${CODEBUILD_BUILD_NUMBER}"
+      - aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+  build:
+    commands:
+      - echo "BUILD - building producer and consumer images"
+      - docker build -t "$PRODUCER_REPOSITORY_URI:$IMAGE_TAG" producer
+      - docker build -t "$CONSUMER_REPOSITORY_URI:$IMAGE_TAG" consumer
+      - docker tag "$PRODUCER_REPOSITORY_URI:$IMAGE_TAG" "$PRODUCER_REPOSITORY_URI:latest"
+  post_build:
+    commands:
+      - echo "POST_BUILD - pushing images and writing deployment artifacts"
+      - docker push "$PRODUCER_REPOSITORY_URI:$IMAGE_TAG"
+      - docker push "$PRODUCER_REPOSITORY_URI:latest"
+      - docker push "$CONSUMER_REPOSITORY_URI:$IMAGE_TAG"
+      - printf '{"ImageURI":"%s"}' "$CONSUMER_REPOSITORY_URI:$IMAGE_TAG" > imageDetail.json
+      - cp deploy/appspec.yaml deploy/taskdef.json .
+      - sed -i "s|<VALIDATION_HOOK_ARN>|$VALIDATION_HOOK_ARN|g" appspec.yaml
+      - sed -i "s|<EXECUTION_ROLE_ARN>|$EXECUTION_ROLE_ARN|g; s|<TASK_ROLE_ARN>|$TASK_ROLE_ARN|g; s|<QUEUE_URL>|$QUEUE_URL|g; s|<LOG_GROUP>|$LOG_GROUP|g; s|<AWS_REGION>|$AWS_DEFAULT_REGION|g; s|<TASK_FAMILY>|$TASK_FAMILY|g" taskdef.json
+
+artifacts:
+  files:
+    - appspec.yaml
+    - taskdef.json
+    - imageDetail.json

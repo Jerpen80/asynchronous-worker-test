@@ -1,0 +1,3 @@
+-r producer/requirements.txt
+-r consumer/requirements.txt
+pytest==8.4.2

@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - echo "INSTALL - installing test dependencies"
+      - pip install -r requirements-dev.txt
+  pre_build:
+    commands:
+      - echo "PRE_BUILD - static syntax check"
+      - python -m compileall producer consumer
+  build:
+    commands:
+      - echo "BUILD - running unit tests"
+      - pytest --junitxml=pytest-report.xml
+  post_build:
+    commands:
+      - echo "POST_BUILD - tests completed"
+
+reports:
+  unit_tests:
+    files:
+      - pytest-report.xml
+    file-format: JUNITXML

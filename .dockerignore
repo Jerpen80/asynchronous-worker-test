@@ -1,0 +1,4 @@
+.git
+.terraform
+**/__pycache__
+**/.pytest_cache
