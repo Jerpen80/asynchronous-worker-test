@@ -37,6 +37,15 @@ producer_batch_delay_seconds      = 0.1
 
 That example sends 500 messages, waits two minutes, and repeats twice more. Useful patterns include one large burst to watch scale-out, several spaced bursts to watch scale-in and scale-out repeat, and short intervals that keep pressure on the queue. These values become defaults in the producer task definition and can also be overridden for an individual `aws ecs run-task` invocation.
 
+The approximate producer runtime is:
+
+```text
+(burst_count - 1) * burst_interval_seconds
++ burst_count * ceil(messages_per_burst / 10) * batch_delay_seconds
+```
+
+SQS accepts ten messages per batch, which explains the division by ten. The supplied experiment values use six bursts of 100 messages at three-minute intervals. That runs for approximately 15 minutes and 6 seconds. Increase `producer_messages_per_burst` to make each burst larger, change `producer_burst_interval_seconds` to control the pause, or change `producer_burst_count` to shorten or extend the experiment.
+
 ### 2. CodePipeline with tests and CodeDeploy hooks
 
 The second goal is to understand the distinction between CodePipeline stages, CodeBuild phases, and CodeDeploy lifecycle hooks.
@@ -49,18 +58,18 @@ CodePipeline
     -> Deploy (ECS blue/green through CodeDeploy)
          -> AfterAllowTestTraffic Lambda hook
          -> canary production traffic shift or rollback
-    -> Integration test (run producer and verify the queue drains)
+    -> Experiment launch (start the producer task and leave it running in ECS)
 ```
 
 The unit-test stage publishes a JUnit report. The build stage creates both containers, pushes them to ECR, and passes `taskdef.json`, `appspec.yaml`, and `imageDetail.json` to the deploy stage. CodeDeploy creates a green ECS task set and routes the test listener to it. The `AfterAllowTestTraffic` Lambda hook calls the green consumer's health endpoint and reports success or failure to CodeDeploy. Only successful validation allows the canary production shift to continue; failure triggers rollback.
 
 An SQS consumer has no natural HTTP traffic to shift. The small `/health` endpoint, ALB, and its production/test listeners exist specifically to make the complete ECS blue/green lifecycle observable. Actual jobs still enter through SQS.
 
-After deployment, the integration-test stage launches the producer task and verifies that the live consumer service drains all visible and in-flight messages. This exercises the complete path:
+After deployment, the experiment stage launches the producer task and waits only until ECS reports it as running. The pipeline then finishes while the producer independently continues its configured burst schedule in Fargate. This exercises the complete path:
 
 ```text
 commit -> unit test -> container build -> ECR -> blue/green deploy
-       -> validation hook -> producer -> SQS -> autoscaled consumers -> empty queue
+       -> validation hook -> start producer -> SQS -> autoscaled consumers
 ```
 
 ## What Terraform creates
@@ -71,7 +80,7 @@ The stack creates:
 - producer and consumer ECR repositories;
 - an on-demand producer Fargate task;
 - an ECS consumer service that scales from SQS queue depth;
-- separate CodePipeline source, unit-test, container-build, blue/green deploy, and integration-test stages;
+- separate CodePipeline source, unit-test, container-build, blue/green deploy, and experiment-launch stages;
 - CodeDeploy blue/green traffic shifting with an `AfterAllowTestTraffic` Lambda validation hook;
 - an Application Load Balancer with production and test listeners for the CodeDeploy lifecycle.
 
@@ -104,9 +113,9 @@ consumer_min_capacity = 1
 consumer_max_capacity = 10
 processing_seconds    = 5
 
-producer_messages_per_burst     = 500
-producer_burst_count            = 3
-producer_burst_interval_seconds = 120
+producer_messages_per_burst     = 100
+producer_burst_count            = 6
+producer_burst_interval_seconds = 180
 ```
 
 Copy `terraform.tfvars.example` to the ignored `terraform.tfvars` file. The values intended for experimentation—including consumer timing/scaling and the producer burst pattern—belong in that local file.
@@ -116,14 +125,14 @@ The AWS provider applies `ManagedBy`, `Project`, and the custom `tags` map as de
 ## Pipeline and lifecycle
 
 ```text
-GitHub -> Unit tests -> Build/push both images -> CodeDeploy -> Integration test
+GitHub -> Unit tests -> Build/push both images -> CodeDeploy -> Start producer
                                                     |
                          green task set -> test listener -> Lambda hook
                                                     |
                                       canary production traffic shift
 ```
 
-The integration stage runs the producer task with 100 messages, waits for it to exit successfully, and checks that the consumer drains both visible and in-flight messages. Queue depth above 10 invokes step scaling. An empty queue scales in one task at a time down to `consumer_min_capacity`.
+The final stage starts the producer task and waits only for it to reach `RUNNING`; it does not wait for the experiment to finish or for the queue to drain. The producer continues for approximately 15 minutes using six bursts of 100 messages. Queue depth above 10 invokes step scaling, and an empty queue later scales the consumer in one task at a time down to `consumer_min_capacity`.
 
 These two experiments intentionally live in one repository so one commit can exercise both the workload and its delivery pipeline.
 

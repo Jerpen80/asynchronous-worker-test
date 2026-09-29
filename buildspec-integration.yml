@@ -10,23 +10,12 @@ phases:
       - echo "PRE_BUILD - launching the producer task"
       - TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER_NAME" --task-definition "$PRODUCER_TASK_DEFINITION" --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=$ASSIGN_PUBLIC_IP}" --query 'tasks[0].taskArn' --output text)
       - test "$TASK_ARN" != "None"
-      - aws ecs wait tasks-stopped --cluster "$CLUSTER_NAME" --tasks "$TASK_ARN"
-      - EXIT_CODE=$(aws ecs describe-tasks --cluster "$CLUSTER_NAME" --tasks "$TASK_ARN" --query 'tasks[0].containers[0].exitCode' --output text)
-      - test "$EXIT_CODE" = "0"
   build:
     commands:
-      - echo "BUILD - waiting for the consumer to drain visible and in-flight messages"
-      - |
-        for attempt in $(seq 1 60); do
-          COUNTS=$(aws sqs get-queue-attributes --queue-url "$QUEUE_URL" --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible --query 'Attributes' --output json)
-          VISIBLE=$(echo "$COUNTS" | python -c 'import json,sys; print(json.load(sys.stdin).get("ApproximateNumberOfMessages", "0"))')
-          INFLIGHT=$(echo "$COUNTS" | python -c 'import json,sys; print(json.load(sys.stdin).get("ApproximateNumberOfMessagesNotVisible", "0"))')
-          echo "attempt=$attempt visible=$VISIBLE in_flight=$INFLIGHT"
-          if [ "$VISIBLE" = "0" ] && [ "$INFLIGHT" = "0" ]; then exit 0; fi
-          sleep 15
-        done
-        echo "Queue did not drain within 15 minutes"
-        exit 1
+      - echo "BUILD - waiting only until ECS reports the producer task as running"
+      - aws ecs wait tasks-running --cluster "$CLUSTER_NAME" --tasks "$TASK_ARN"
+      - STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER_NAME" --tasks "$TASK_ARN" --query 'tasks[0].lastStatus' --output text)
+      - test "$STATUS" = "RUNNING"
   post_build:
     commands:
-      - echo "POST_BUILD - integration test passed"
+      - echo "POST_BUILD - producer is running independently as $TASK_ARN"

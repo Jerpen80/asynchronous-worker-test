@@ -95,13 +95,13 @@ variable "producer_messages_per_burst" {
 variable "producer_burst_count" {
   description = "Number of bursts sent by one producer task run."
   type        = number
-  default     = 1
+  default     = 6
 }
 
 variable "producer_burst_interval_seconds" {
   description = "Seconds the producer waits between bursts."
   type        = number
-  default     = 60
+  default     = 180
 }
 
 variable "producer_batch_delay_seconds" {

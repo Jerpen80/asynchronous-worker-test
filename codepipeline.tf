@@ -104,7 +104,7 @@ resource "aws_codebuild_project" "build" {
 resource "aws_codebuild_project" "integration" {
   name          = "${var.name}-integration"
   service_role  = aws_iam_role.codebuild.arn
-  build_timeout = 25
+  build_timeout = 15
   artifacts {
     type = "CODEPIPELINE"
   }
@@ -132,10 +132,6 @@ resource "aws_codebuild_project" "integration" {
     environment_variable {
       name  = "ASSIGN_PUBLIC_IP"
       value = var.assign_public_ip ? "ENABLED" : "DISABLED"
-    }
-    environment_variable {
-      name  = "QUEUE_URL"
-      value = aws_sqs_queue.jobs.url
     }
   }
   source {
@@ -223,10 +219,10 @@ resource "aws_codepipeline" "this" {
   }
 
   stage {
-    name = "Integration"
+    name = "Experiment"
     action {
-      name            = "QueueDrain"
-      category        = "Test"
+      name            = "StartProducer"
+      category        = "Build"
       owner           = "AWS"
       provider        = "CodeBuild"
       version         = "1"

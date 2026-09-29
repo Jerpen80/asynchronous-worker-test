@@ -26,8 +26,8 @@ max_receive_count          = 3
 
 # Producer load pattern
 producer_messages_per_burst     = 100
-producer_burst_count            = 1
-producer_burst_interval_seconds = 60
+producer_burst_count            = 6
+producer_burst_interval_seconds = 180
 producer_batch_delay_seconds    = 0.1
 
 # CodeDeploy and logs

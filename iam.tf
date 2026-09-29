@@ -111,7 +111,6 @@ resource "aws_iam_role_policy" "codebuild" {
       },
       { Effect = "Allow", Action = ["ecs:RunTask", "ecs:DescribeTasks"], Resource = aws_ecs_task_definition.producer.arn },
       { Effect = "Allow", Action = ["ecs:DescribeTasks"], Resource = "*" },
-      { Effect = "Allow", Action = ["sqs:GetQueueAttributes"], Resource = aws_sqs_queue.jobs.arn },
       { Effect = "Allow", Action = "iam:PassRole", Resource = [aws_iam_role.ecs_execution.arn, aws_iam_role.producer.arn] }
     ]
   })
