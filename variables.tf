@@ -1,3 +1,15 @@
+variable "aws_profile" {
+  description = "Shared AWS config profile used to deploy this stack."
+  type        = string
+  default     = "tn-playground"
+}
+
+variable "aws_region" {
+  description = "AWS region in which to deploy this stack."
+  type        = string
+  default     = "eu-central-1"
+}
+
 variable "name" {
   description = "Name prefix for resources created by this module."
   type        = string

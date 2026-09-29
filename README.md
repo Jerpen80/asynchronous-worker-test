@@ -1,6 +1,6 @@
 # Terraform AWS Asynchronous Worker
 
-This personal Terraform module is built around two experiments.
+This standalone Terraform project is built around two experiments.
 
 ## What I want to test
 
@@ -63,9 +63,9 @@ commit -> unit test -> container build -> ECR -> blue/green deploy
        -> validation hook -> producer -> SQS -> autoscaled consumers -> empty queue
 ```
 
-## What the module creates
+## What Terraform creates
 
-The module creates:
+The stack creates:
 
 - an SQS work queue and dead-letter queue;
 - producer and consumer ECR repositories;
@@ -90,27 +90,26 @@ The archive provider only packages the deployment-validation Lambda. All deploye
 ## Usage
 
 ```hcl
-provider "aws" {
-  profile = "tn-playground"
-  region  = "eu-central-1"
-}
+# terraform.tfvars
+aws_profile    = "tn-playground"
+aws_region     = "eu-central-1"
+connection_arn = "arn:aws:codeconnections:eu-central-1:123456789012:connection/example"
+repository_id  = "owner/repository"
 
-module "asynchronous_worker" {
-  source = "./path/to/asynchronous-worker-test"
+name       = "async-worker-lab"
+vpc_id     = "vpc-0123456789abcdef0"
+subnet_ids = ["subnet-aaaa", "subnet-bbbb"]
 
-  name           = "async-worker-lab"
-  vpc_id         = "vpc-0123456789abcdef0"
-  subnet_ids     = ["subnet-aaaa", "subnet-bbbb"]
-  connection_arn = "arn:aws:codeconnections:eu-central-1:123456789012:connection/example"
-  repository_id  = "owner/repository"
+consumer_min_capacity = 1
+consumer_max_capacity = 10
+processing_seconds    = 5
 
-  consumer_min_capacity = 1
-  consumer_max_capacity = 10
-  processing_seconds    = 5
-}
+producer_messages_per_burst     = 500
+producer_burst_count            = 3
+producer_burst_interval_seconds = 120
 ```
 
-A ready-to-run configuration is in [`examples/basic`](examples/basic). The provider belongs in the root configuration—not inside the reusable module—so callers control authentication and region.
+The values intended for experimentation are collected in [`terraform.tfvars`](terraform.tfvars). Change the consumer timing/scaling values or producer burst pattern there, then run Terraform from the repository root.
 
 ## Pipeline and lifecycle
 
@@ -126,12 +125,12 @@ The integration stage runs the producer task with 100 messages, waits for it to 
 
 These two experiments intentionally live in one repository so one commit can exercise both the workload and its delivery pipeline.
 
-## Deploy the basic example
+## Deploy
 
 ```shell
-terraform -chdir=examples/basic init
-terraform -chdir=examples/basic plan -out=async-worker.tfplan
-terraform -chdir=examples/basic apply async-worker.tfplan
+terraform init
+terraform plan -out=async-worker.tfplan
+terraform apply async-worker.tfplan
 ```
 
 The configured GitHub connection must already be in `AVAILABLE` state. Pipeline source files must also be committed to the configured branch before expecting the first pipeline execution to pass.
@@ -141,5 +140,5 @@ The configured GitHub connection must already be in `AVAILABLE` state. Pipeline 
 This lab creates billable Fargate tasks, an Application Load Balancer, CodeBuild jobs, CloudWatch Logs, and S3/ECR storage. Remove it when finished:
 
 ```shell
-terraform -chdir=examples/basic destroy
+terraform destroy
 ```
